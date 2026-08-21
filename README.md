@@ -6,23 +6,18 @@ Automated Python ETL pipeline extracting global banks market cap data, convertin
 An automated Python ETL (Extract, Transform, Load) pipeline designed to extract, transform, audit, and persist financial data on the world's top 10 largest banks by market capitalization.
 
 ---
-## Architecture Overview
 
-```mermaid
-flowchart TD
-    A[Wikipedia Archive HTML] -->|HTTP GET / BeautifulSoup| B[Raw Data Extraction]
-    B -->|Pandas Transformation + exchange_rate.csv| C[Enriched Multi-Currency DataFrame]
-    
-    C -->|load_to_csv| D[(Largest_banks_data.csv)]
-    C -->|load_to_db| E[(SQLite Database: Banks.db)]
-    
-    E -->|Automated Verification| F[SQL Query Execution]
-    
-    B -.->|Timestamps| G[code_log.txt]
-    C -.->|Timestamps| G
-    D -.->|Timestamps| G
-    E -.->|Timestamps| G
-    F -.->|Timestamps| G
+## Architecture & Data Flow
+
+1. **Source Layer:** Target table from archived Wikipedia web page.
+2. **Extraction Engine:** Automated scraping and parsing via `requests` and `BeautifulSoup4`.
+3. **Transformation Layer:** 
+   * Ingestion of `exchange_rate.csv`.
+   * Currency calculations for GBP, EUR, and INR using Pandas/NumPy vectorization.
+4. **Persistence Layer:**
+   * **Flat-File:** Exported to `Largest_banks_data.csv`.
+   * **RDBMS:** Inserted into table `Largest_banks` in `Banks.db` (SQLite).
+5. **Validation & Auditing:** Automated SQL queries execution and centralized timestamp logging in `code_log.txt`.
 
 ---
 
