@@ -41,7 +41,7 @@ An automated Python ETL (Extract, Transform, Load) pipeline designed to extract,
 ```
 
 # Quickstart
-##Clone the repository
+## Clone the repository
 git clone [https://github.com/hugoargerio-glitch/Acquiring-processing-Bank-Information-IBM.git](https://github.com/hugoargerio-glitch/Acquiring-processing-Bank-Information-IBM.git)
 cd Acquiring-processing-Bank-Information-IBM
 
