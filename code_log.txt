@@ -1,0 +1,268 @@
+ import requests
+
+from bs4 import BeautifulSoup
+
+import pandas as pd
+
+import sqlite3
+
+import numpy as np
+
+from datetime import datetime
+
+---
+
+# auditoria
+
+def log_progress(message):
+
+timestamp_format = '%Y-%h-%d-%H:%M:%S'
+
+now = datetime.now()
+
+timestamp = now.strftime(timestamp_format)
+
+with open("code_log.txt", "a") as f:
+
+f.write(f"{timestamp} : {message}\n")
+
+---
+
+# extração
+
+def extract(url, table_attribs):
+
+page = requests.get(url).text
+
+data = BeautifulSoup(page, 'html.parser')
+
+df = pd.DataFrame(columns=table_attribs)
+
+# Localiza as tabelas e itera pelas linhas da tabela principal
+
+tables = data.find_all('tbody')
+
+rows = tables[0].find_all('tr')
+
+for row in rows:
+
+col = row.find_all('td')
+
+if len(col) != 0:
+
+# Obtém o nome do banco (coluna 1) e o valor de Market Cap (coluna 2)
+
+bank_name = col[1].find_all('a')[1]['title'] if len(col[1].find_all('a')) > 1 else col[1].text.strip()
+
+market_cap = float(col[2].contents[0].replace('\n', '').strip())
+
+data_dict = {
+
+table_attribs[0]: bank_name,
+
+table_attribs[1]: market_cap
+
+}
+
+df1 = pd.DataFrame(data_dict, index=[0])
+
+df = pd.concat([df, df1], ignore_index=True)
+
+# Filtra apenas o Top 10
+
+df = df.head(10)
+
+return df
+
+---
+
+# transformação
+
+def transform(df, exchange_rate_path):
+
+# Carrega o CSV de taxas e transforma em dicionário
+
+exchange_rate_df = pd.read_csv(exchange_rate_path)
+
+dict_rates = exchange_rate_df.set_index('Currency').to_dict()['Rate']
+
+# Conversões cambiais baseadas na coluna USD
+
+df['MC_GBP_Billion'] = [np.round(x * dict_rates['GBP'], 2) for x in df['MC_USD_Billion']]
+
+df['MC_EUR_Billion'] = [np.round(x * dict_rates['EUR'], 2) for x in df['MC_USD_Billion']]
+
+df['MC_INR_Billion'] = [np.round(x * dict_rates['INR'], 2) for x in df['MC_USD_Billion']]
+
+return df
+
+---
+
+# load
+
+def load_to_csv(df, output_path):
+
+df.to_csv(output_path, index=False)
+
+
+def load_to_db(df, sql_connection, table_name):
+
+df.to_sql(table_name, sql_connection, if_exists='replace', index=False)
+
+---
+
+# run_query
+
+def run_query(query_statement, sql_connection):
+
+print(query_statement)
+
+query_output = pd.read_sql(query_statement, sql_connection)
+
+print(query_output)
+
+log_progress('Process Query Execution completed')
+
+
+# + exchange_rate.csv
+
+
+import urllib.request
+
+
+# URL oficial do arquivo de câmbio fornecido pelo curso da IBM
+
+exchange_url = "https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBMSkillsNetwork-PY0221EN-Coursera/labs/v2/exchange_rate.csv"
+
+urllib.request.urlretrieve(exchange_url, "exchange_rate.csv")
+
+
+# Validação: visualiza o conteúdo baixado
+
+import pandas as pd
+
+print(pd.read_csv("exchange_rate.csv"))
+
+---
+
+# otimização da extract (eliminando o FutureWarning)
+
+def extract(url, table_attribs):
+
+page = requests.get(url).text
+
+data = BeautifulSoup(page, 'html.parser')
+
+tables = data.find_all('tbody')
+
+rows = tables[0].find_all('tr')
+
+data_list = []
+
+for row in rows:
+
+col = row.find_all('td')
+
+if len(col) != 0:
+
+# Extrai nome do banco e remove quebras de linha do valor
+
+bank_name = col[1].find_all('a')[1]['title'] if len(col[1].find_all('a')) > 1 else col[1].text.strip()
+
+market_cap = float(col[2].contents[0].replace('\n', '').strip())
+
+data_list.append({
+
+table_attribs[0]: bank_name,
+
+table_attribs[1]: market_cap
+
+})
+
+df = pd.DataFrame(data_list)
+
+return df.head(10)
+
+---
+
+# Orquestração
+
+url = 'https://web.archive.org/web/20230908091635/https://en.wikipedia.org/wiki/List_of_largest_banks'
+
+table_attribs = ['Name', 'MC_USD_Billion']
+
+db_name = 'Banks.db'
+
+table_name = 'Largest_banks'
+
+csv_path = 'Largest_banks_data.csv'
+
+exchange_rate_path = 'exchange_rate.csv'
+
+
+# 1. Início
+
+log_progress('Preliminaries complete. Initiating ETL process')
+
+
+# 2. Extração
+
+df = extract(url, table_attribs)
+
+log_progress('Data extraction complete. Initiating Transformation process')
+
+
+# 3. Transformação (Agora com o CSV disponível)
+
+df = transform(df, exchange_rate_path)
+
+log_progress('Data transformation complete. Initiating Loading process')
+
+
+# 4. Cargas
+
+load_to_csv(df, csv_path)
+
+log_progress('Data saved to CSV file')
+
+
+sql_connection = sqlite3.connect(db_name)
+
+log_progress('SQL Connection initiated')
+
+
+load_to_db(df, sql_connection, table_name)
+
+log_progress('Data loaded to Database as a table, Executing queries')
+
+
+# 5. Queries de validação
+
+run_query('SELECT * FROM Largest_banks', sql_connection)
+
+run_query('SELECT AVG(MC_GBP_Billion) FROM Largest_banks', sql_connection)
+
+run_query('SELECT Name from Largest_banks LIMIT 5', sql_connection)
+
+
+log_progress('Process Complete')
+
+sql_connection.close()
+
+log_progress('Server Connection closed')
+
+2026-Aug-21-12:22:42 : Preliminaries complete. Initiating ETL process
+2026-Aug-21-12:26:47 : Preliminaries complete. Initiating ETL process
+2026-Aug-21-12:27:44 : Preliminaries complete. Initiating ETL process
+2026-Aug-21-12:27:56 : Data extraction complete. Initiating Transformation process
+2026-Aug-21-12:31:47 : Preliminaries complete. Initiating ETL process
+2026-Aug-21-12:31:49 : Data extraction complete. Initiating Transformation process
+2026-Aug-21-12:31:49 : Data transformation complete. Initiating Loading process
+2026-Aug-21-12:31:49 : Data saved to CSV file
+2026-Aug-21-12:31:49 : SQL Connection initiated
+2026-Aug-21-12:31:49 : Data loaded to Database as a table, Executing queries
+2026-Aug-21-12:31:49 : Process Query Execution completed
+2026-Aug-21-12:31:49 : Process Query Execution completed
+2026-Aug-21-12:31:49 : Process Query Execution completed
+2026-Aug-21-12:31:49 : Process Complete
+2026-Aug-21-12:31:49 : Server Connection closed
