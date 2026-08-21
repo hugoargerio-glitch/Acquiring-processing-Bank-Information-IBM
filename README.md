@@ -1,7 +1,4 @@
-# Acquiring-processing-Bank-Information-IBM
-Automated Python ETL pipeline extracting global banks market cap data, converting multi-currency rates (GBP/EUR/INR), logging progress, and persisting into CSV and SQLite.
-
-# Automated ETL Pipeline: Global Banks Market Capitalization
+# Global Banks Market Capitalization ETL Pipeline
 
 An automated Python ETL (Extract, Transform, Load) pipeline designed to extract, transform, audit, and persist financial data on the world's top 10 largest banks by market capitalization.
 
@@ -9,22 +6,47 @@ An automated Python ETL (Extract, Transform, Load) pipeline designed to extract,
 
 ## Architecture & Data Flow
 
-1. **Source Layer:** Target table from archived Wikipedia web page.
-2. **Extraction Engine:** Automated scraping and parsing via `requests` and `BeautifulSoup4`.
-3. **Transformation Layer:** 
-   * Ingestion of `exchange_rate.csv`.
-   * Currency calculations for GBP, EUR, and INR using Pandas/NumPy vectorization.
-4. **Persistence Layer:**
-   * **Flat-File:** Exported to `Largest_banks_data.csv`.
-   * **RDBMS:** Inserted into table `Largest_banks` in `Banks.db` (SQLite).
-5. **Validation & Auditing:** Automated SQL queries execution and centralized timestamp logging in `code_log.txt`.
+* **Source Layer:** Target table from archived Wikipedia web page.
+* **Extraction Engine:** Automated scraping and parsing via `requests` and `BeautifulSoup4`.
+* **Transformation Layer:** 
+  * Ingestion of `exchange_rate.csv`.
+  * Currency calculations for GBP, EUR, and INR using Pandas/NumPy vectorization.
+* **Persistence Layer:**
+  * **Flat-File:** Exported to `Largest_banks_data.csv`.
+  * **RDBMS:** Inserted into table `Largest_banks` in `Banks.db` (SQLite).
+* **Validation & Auditing:** Automated SQL queries execution and centralized timestamp logging in `code_log.txt`.
 
 ---
 
 ## Tech Stack
 
-* **Language:** Python 3.x
-* **Web Scraping:** `requests`, `BeautifulSoup` (bs4)
-* **Data Processing & Transformation:** `pandas`, `numpy`
-* **Relational Storage:** `sqlite3`
-* **Audit & Logging:** Python Standard Library (`datetime`)
+* **Language:** Python 3.8+
+* **Web Scraping:** `requests`, `beautifulsoup4`
+* **Data Processing:** `pandas`, `numpy`
+* **Storage:** `sqlite3` (Embedded RDBMS)
+* **Auditing:** `datetime` (Python Standard Library)
+
+---
+
+## Repository Structure
+
+```text
+├── banks_project.py        # Main ETL script
+├── exchange_rate.csv       # Conversion rates for GBP, EUR, INR
+├── Largest_banks_data.csv  # Processed output dataset
+├── Banks.db                # SQLite database
+├── code_log.txt            # Audit trail log
+├── .gitignore              # Ignored files
+└── README.md               # Documentation
+```
+
+# Quickstart
+##Clone the repository
+git clone [https://github.com/hugoargerio-glitch/Acquiring-processing-Bank-Information-IBM.git](https://github.com/hugoargerio-glitch/Acquiring-processing-Bank-Information-IBM.git)
+cd Acquiring-processing-Bank-Information-IBM
+
+## Install dependencies
+pip install requests beautifulsoup4 pandas numpy
+
+## Run the pipeline
+python banks_project.py
